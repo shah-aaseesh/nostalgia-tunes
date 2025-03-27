@@ -8,7 +8,6 @@ import ProgressBar from "./ProgressBar";
 import PlayerControls from "./PlayerControls";
 import NowPlaying from "./NowPlaying";
 import VolumeControl from "./VolumeControl";
-import PlaylistUploader from "./PlaylistUploader";
 import ParticleBackground from "./ParticleBackground";
 
 const formatTime = (seconds: number) => {
@@ -31,7 +30,6 @@ const MusicPlayer = ({ className }: MusicPlayerProps) => {
   });
   
   const [duration, setDuration] = useState(0);
-  const [showAddSong, setShowAddSong] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement>(null);
   const intervalRef = useRef<number | null>(null);
@@ -142,15 +140,6 @@ const MusicPlayer = ({ className }: MusicPlayerProps) => {
     }
   };
   
-  const handleAddSong = (song: Song) => {
-    setState((prev) => ({
-      ...prev,
-      songs: [...prev.songs, song],
-    }));
-    
-    setShowAddSong(false);
-  };
-  
   return (
     <div className={cn(
       "flex flex-col max-w-4xl mx-auto h-full overflow-hidden animate-fade-in",
@@ -160,12 +149,12 @@ const MusicPlayer = ({ className }: MusicPlayerProps) => {
       
       <div className="glass-panel rounded-lg p-6 mb-8 animate-fade-in-up">
         <h1 className="text-2xl font-medium text-white text-center mb-2">Every song tells a story. These were ours.</h1>
-        <p className="text-spotify-text text-center">Wishing you a beautiful birthday.</p>
+        <p className="text-spotify-text text-center">Each melody holds a moment we shared. With love on your birthday.</p>
       </div>
       
       <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
         {/* Left panel (Playlist) */}
-        <div className="glass-panel rounded-lg p-4 w-full md:w-1/2 flex flex-col animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+        <div className="glass-panel rounded-lg p-4 w-full md:w-1/2 flex flex-col animate-fade-in-up border border-pink-900/20" style={{ animationDelay: "0.1s" }}>
           <h2 className="text-lg font-medium text-white mb-4">Our Playlist</h2>
           
           <div className="flex-1 overflow-y-auto pr-2">
@@ -178,30 +167,16 @@ const MusicPlayer = ({ className }: MusicPlayerProps) => {
               />
             ))}
           </div>
-          
-          <div className="mt-4">
-            {showAddSong ? (
-              <PlaylistUploader 
-                onAddSong={handleAddSong}
-              />
-            ) : (
-              <button
-                onClick={() => setShowAddSong(true)}
-                className="w-full bg-spotify-light hover:bg-spotify-light/80 text-white rounded-md py-2 text-sm font-medium transition-colors"
-              >
-                Add New Song
-              </button>
-            )}
-          </div>
         </div>
         
         {/* Right panel (Now Playing) */}
-        <div className="glass-panel rounded-lg p-4 w-full md:w-1/2 flex flex-col animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+        <div className="glass-panel rounded-lg p-4 w-full md:w-1/2 flex flex-col animate-fade-in-up border border-pink-900/20" style={{ animationDelay: "0.2s" }}>
           <h2 className="text-lg font-medium text-white mb-4">Now Playing</h2>
           
           {currentSong && (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="w-full max-w-64 aspect-square rounded-md overflow-hidden mb-8 shadow-xl animate-float">
+              <div className="w-full max-w-64 aspect-square rounded-md overflow-hidden mb-8 shadow-xl animate-float relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <img
                   src={currentSong.imageUrl}
                   alt={currentSong.title}
@@ -229,7 +204,7 @@ const MusicPlayer = ({ className }: MusicPlayerProps) => {
       </div>
       
       {/* Player controls (bottom) */}
-      <div className="glass-panel rounded-lg p-4 mt-6 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+      <div className="glass-panel rounded-lg p-4 mt-6 animate-fade-in-up border border-pink-900/20" style={{ animationDelay: "0.3s" }}>
         <div className="flex flex-col space-y-3">
           <div className="flex items-center justify-between text-xs text-spotify-text">
             <span>{formatTime(state.progress)}</span>

@@ -60,6 +60,18 @@ export default {
 					light: '#282828',
 					text: '#b3b3b3',
 					white: '#FFFFFF'
+				},
+				pink: {
+					50: '#fdf2f8',
+					100: '#fce7f3',
+					200: '#fbcfe8',
+					300: '#f9a8d4',
+					400: '#f472b6',
+					500: '#ec4899',
+					600: '#db2777',
+					700: '#be185d',
+					800: '#9d174d',
+					900: '#831843'
 				}
 			},
 			borderRadius: {
@@ -95,6 +107,16 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-200% 0' },
 					'100%': { backgroundPosition: '200% 0' }
+				},
+				'heartbeat': {
+					'0%': { transform: 'scale(1)' },
+					'14%': { transform: 'scale(1.3)' },
+					'28%': { transform: 'scale(1)' },
+					'42%': { transform: 'scale(1.3)' },
+					'70%': { transform: 'scale(1)' }
+				},
+				'ping': {
+					'75%, 100%': { transform: 'scale(2)', opacity: '0' }
 				}
 			},
 			animation: {
@@ -104,7 +126,9 @@ export default {
 				'fade-in-up': 'fade-in-up 0.7s ease-out',
 				'pulse-light': 'pulse-light 3s infinite ease-in-out',
 				'float': 'float 6s infinite ease-in-out',
-				'shimmer': 'shimmer 3s infinite linear'
+				'shimmer': 'shimmer 3s infinite linear',
+				'heartbeat': 'heartbeat 1.5s infinite',
+				'ping': 'ping 1s cubic-bezier(0, 0, 0.2, 1)'
 			}
 		}
 	},

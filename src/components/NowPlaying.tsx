@@ -12,16 +12,25 @@ interface NowPlayingProps {
 const NowPlaying = ({ song, className }: NowPlayingProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   
   useEffect(() => {
     // Reset loaded state when song changes
     setImageLoaded(false);
   }, [song?.id]);
   
+  const handleFavoriteClick = () => {
+    setIsFavorite(!isFavorite);
+    if (!isFavorite) {
+      setShowHeartAnimation(true);
+      setTimeout(() => setShowHeartAnimation(false), 1000);
+    }
+  };
+  
   if (!song) return null;
   
   return (
-    <div className={cn("flex items-center", className)}>
+    <div className={cn("flex items-center relative", className)}>
       <div className="w-14 h-14 rounded-md overflow-hidden mr-4 relative">
         {!imageLoaded && (
           <div className="absolute inset-0 shimmer"></div>
@@ -43,14 +52,25 @@ const NowPlaying = ({ song, className }: NowPlayingProps) => {
         <p className="text-xs text-spotify-text truncate">{song.artist}</p>
       </div>
       <button
-        onClick={() => setIsFavorite(!isFavorite)}
+        onClick={handleFavoriteClick}
         className={cn(
           "text-spotify-text transition-colors",
-          isFavorite ? "text-spotify hover:text-spotify/80" : "hover:text-spotify-white"
+          isFavorite ? "text-pink-500 hover:text-pink-400" : "hover:text-spotify-white"
         )}
       >
         <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
       </button>
+      
+      {showHeartAnimation && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <Heart 
+            size={40} 
+            className="text-pink-500 animate-ping opacity-0" 
+            fill="currentColor"
+            style={{animationDuration: "0.8s"}}
+          />
+        </div>
+      )}
     </div>
   );
 };
