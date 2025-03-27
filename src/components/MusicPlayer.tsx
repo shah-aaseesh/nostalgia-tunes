@@ -1,8 +1,6 @@
-
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Song, PlaylistState } from "@/types";
-import { initialPlaylist } from "@/data/initialPlaylist";
 import SongCard from "./SongCard";
 import ProgressBar from "./ProgressBar";
 import PlayerControls from "./PlayerControls";
@@ -18,16 +16,26 @@ const formatTime = (seconds: number) => {
 
 interface MusicPlayerProps {
   className?: string;
+  songs: Song[];
 }
 
-const MusicPlayer = ({ className }: MusicPlayerProps) => {
+const MusicPlayer = ({ className, songs }: MusicPlayerProps) => {
   const [state, setState] = useState<PlaylistState>({
     currentSongIndex: 0,
     isPlaying: false,
-    songs: initialPlaylist,
+    songs,
     progress: 0,
     volume: 0.7,
   });
+  
+  // Update songs when they change
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      songs,
+      currentSongIndex: Math.min(prev.currentSongIndex, songs.length - 1)
+    }));
+  }, [songs]);
   
   const [duration, setDuration] = useState(0);
   

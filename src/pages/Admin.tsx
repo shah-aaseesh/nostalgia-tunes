@@ -1,17 +1,17 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Song } from "@/types";
-import { initialPlaylist } from "@/data/initialPlaylist";
 import { Button } from "@/components/ui/button";
 import { Heart, Music, Trash2, ArrowLeft, Plus, Save } from "lucide-react";
 import FileUploader from "@/components/FileUploader";
 import ImageUploader from "@/components/ImageUploader";
+import { songService } from "@/lib/songService";
+import { toast } from "sonner";
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [songs, setSongs] = useState<Song[]>(initialPlaylist);
+  const [songs, setSongs] = useState<Song[]>([]);
   const [newSong, setNewSong] = useState<Partial<Song>>({
     id: "",
     title: "",
@@ -23,6 +23,7 @@ const Admin = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
   
@@ -33,7 +34,7 @@ const Admin = () => {
       setIsAuthenticated(true);
       localStorage.setItem("cms-authenticated", "true");
     } else {
-      alert("Incorrect password");
+      toast.error("Incorrect password");
     }
   };
   
@@ -42,8 +43,19 @@ const Admin = () => {
     const auth = localStorage.getItem("cms-authenticated");
     if (auth === "true") {
       setIsAuthenticated(true);
+      loadSongs();
     }
   }, []);
+  
+  const loadSongs = async () => {
+    try {
+      const songs = await songService.getSongs();
+      setSongs(songs);
+    } catch (error) {
+      toast.error("Failed to load songs");
+      console.error(error);
+    }
+  };
   
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -60,68 +72,88 @@ const Admin = () => {
 
   const handleAudioUpload = (file: File) => {
     setAudioFile(file);
-    // Create a URL for the audio file
-    const url = URL.createObjectURL(file);
-    setNewSong(prev => ({
-      ...prev,
-      audioUrl: url
-    }));
   };
 
   const handleImageUpload = (file: File) => {
     setImageFile(file);
-    // Create a URL for the image file
-    const url = URL.createObjectURL(file);
-    setNewSong(prev => ({
-      ...prev,
-      imageUrl: url
-    }));
   };
   
-  const handleAddSong = () => {
-    if (!newSong.title || !newSong.artist || !newSong.audioUrl || !newSong.imageUrl) {
-      alert("Please fill in all fields");
+  const handleAddSong = async () => {
+    if (!newSong.title || !newSong.artist) {
+      toast.error("Please enter song title and artist");
       return;
     }
     
-    const song: Song = {
-      id: Date.now().toString(),
-      title: newSong.title || "",
-      artist: newSong.artist || "",
-      audioUrl: newSong.audioUrl || "",
-      imageUrl: newSong.imageUrl || "",
-      duration: newSong.duration || 180
-    };
+    if (!newSong.audioUrl && !audioFile) {
+      toast.error("Please provide an audio source (upload a file or enter a URL)");
+      return;
+    }
     
-    setSongs(prev => [...prev, song]);
+    if (!newSong.imageUrl && !imageFile) {
+      toast.error("Please provide an image source (upload a file or enter a URL)");
+      return;
+    }
     
-    // In a real app, you would save this to your backend/database
-    console.log("Song added:", song);
-    
-    // Reset form
-    setNewSong({
-      id: "",
-      title: "",
-      artist: "",
-      audioUrl: "",
-      imageUrl: "",
-      duration: 0
-    });
-    setAudioFile(null);
-    setImageFile(null);
-    
-    setIsAdding(false);
+    setIsLoading(true);
+    try {
+      let audioUrl = newSong.audioUrl || "";
+      let imageUrl = newSong.imageUrl || "";
+      
+      // Upload files to Supabase storage if provided
+      if (audioFile) {
+        audioUrl = await songService.uploadFile(audioFile, 'audio');
+      }
+      
+      if (imageFile) {
+        imageUrl = await songService.uploadFile(imageFile, 'images');
+      }
+      
+      // Add song to database
+      const song = await songService.addSong({
+        title: newSong.title,
+        artist: newSong.artist,
+        audioUrl,
+        imageUrl,
+        duration: newSong.duration || 180
+      });
+      
+      setSongs(prev => [...prev, song]);
+      toast.success("Song added successfully!");
+      
+      // Reset form
+      setNewSong({
+        id: "",
+        title: "",
+        artist: "",
+        audioUrl: "",
+        imageUrl: "",
+        duration: 0
+      });
+      setAudioFile(null);
+      setImageFile(null);
+      
+      setIsAdding(false);
+    } catch (error) {
+      toast.error("Failed to add song");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleRemoveSong = (id: string) => {
-    setSongs(prev => prev.filter(song => song.id !== id));
-    // In a real app, you would delete this from your backend/database
+  const handleRemoveSong = async (id: string) => {
+    try {
+      await songService.deleteSong(id);
+      setSongs(prev => prev.filter(song => song.id !== id));
+      toast.success("Song removed successfully!");
+    } catch (error) {
+      toast.error("Failed to remove song");
+      console.error(error);
+    }
   };
   
   const handleSavePlaylist = () => {
-    // In a real app, you would save the entire playlist to your backend/database
-    alert("Playlist saved! In a real application, this would update your database.");
-    console.log("Saving playlist:", songs);
+    toast.success("Playlist saved successfully!");
   };
   
   if (!isAuthenticated) {
@@ -253,6 +285,23 @@ const Admin = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <label htmlFor="duration" className="text-xs text-spotify-text">
+                    Duration (seconds)
+                  </label>
+                  <input
+                    id="duration"
+                    name="duration"
+                    type="number"
+                    value={newSong.duration || ""}
+                    onChange={handleInputChange}
+                    className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
+                    placeholder="Enter duration in seconds"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
                   <label className="text-xs text-spotify-text">Audio Source</label>
                   <div className="grid grid-cols-1 gap-2">
                     {audioFile ? (
@@ -298,7 +347,7 @@ const Admin = () => {
                     {imageFile ? (
                       <div className="relative h-24 bg-spotify-dark rounded overflow-hidden">
                         <img 
-                          src={newSong.imageUrl} 
+                          src={URL.createObjectURL(imageFile)} 
                           alt="Preview" 
                           className="w-full h-full object-cover"
                         />
@@ -335,48 +384,22 @@ const Admin = () => {
                     )}
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="duration" className="text-xs text-spotify-text">
-                    Duration (seconds)
-                  </label>
-                  <input
-                    id="duration"
-                    name="duration"
-                    type="number"
-                    value={newSong.duration || ""}
-                    onChange={handleInputChange}
-                    className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
-                    placeholder="Enter duration in seconds"
-                  />
-                </div>
               </div>
               
-              <div className="flex space-x-2">
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAdding(false)}
+                  className="bg-transparent border-pink-700 text-pink-300 hover:bg-pink-900/20"
+                >
+                  Cancel
+                </Button>
                 <Button
                   onClick={handleAddSong}
                   className="bg-pink-700 hover:bg-pink-600"
+                  disabled={isLoading}
                 >
-                  Add Song
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsAdding(false);
-                    setAudioFile(null);
-                    setImageFile(null);
-                    setNewSong({
-                      id: "",
-                      title: "",
-                      artist: "",
-                      audioUrl: "",
-                      imageUrl: "",
-                      duration: 0
-                    });
-                  }}
-                  className="text-spotify-text hover:text-spotify-white"
-                >
-                  Cancel
+                  {isLoading ? "Adding..." : "Add Song"}
                 </Button>
               </div>
             </div>
@@ -384,40 +407,31 @@ const Admin = () => {
           
           <div className="space-y-2">
             {songs.map((song) => (
-              <div 
+              <div
                 key={song.id}
-                className="flex items-center justify-between bg-spotify-dark rounded-md p-3 group hover:bg-spotify-light transition-colors"
+                className="flex items-center justify-between p-3 bg-spotify-dark rounded-lg"
               >
-                <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-md overflow-hidden mr-4 flex-shrink-0">
-                    <img
-                      src={song.imageUrl}
-                      alt={song.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={song.imageUrl}
+                    alt={song.title}
+                    className="w-10 h-10 rounded object-cover"
+                  />
                   <div>
-                    <h3 className="text-sm font-medium text-spotify-white">{song.title}</h3>
+                    <h3 className="text-sm font-medium text-white">{song.title}</h3>
                     <p className="text-xs text-spotify-text">{song.artist}</p>
                   </div>
                 </div>
-                
                 <Button
                   variant="ghost"
+                  size="icon"
                   onClick={() => handleRemoveSong(song.id)}
-                  className="opacity-0 group-hover:opacity-100 text-spotify-text hover:text-red-500 hover:bg-transparent"
+                  className="text-spotify-text hover:text-red-500"
                 >
                   <Trash2 size={18} />
                 </Button>
               </div>
             ))}
-            
-            {songs.length === 0 && (
-              <div className="text-center py-6">
-                <Music size={32} className="mx-auto text-spotify-text mb-2" />
-                <p className="text-spotify-text">No songs in the playlist</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
