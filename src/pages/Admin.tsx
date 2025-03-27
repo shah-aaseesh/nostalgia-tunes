@@ -5,6 +5,8 @@ import { Song } from "@/types";
 import { initialPlaylist } from "@/data/initialPlaylist";
 import { Button } from "@/components/ui/button";
 import { Heart, Music, Trash2, ArrowLeft, Plus, Save } from "lucide-react";
+import FileUploader from "@/components/FileUploader";
+import ImageUploader from "@/components/ImageUploader";
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,6 +21,8 @@ const Admin = () => {
     duration: 0
   });
   const [isAdding, setIsAdding] = useState(false);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const navigate = useNavigate();
   
@@ -53,6 +57,26 @@ const Admin = () => {
       [name]: name === "duration" ? Number(value) : value
     }));
   };
+
+  const handleAudioUpload = (file: File) => {
+    setAudioFile(file);
+    // Create a URL for the audio file
+    const url = URL.createObjectURL(file);
+    setNewSong(prev => ({
+      ...prev,
+      audioUrl: url
+    }));
+  };
+
+  const handleImageUpload = (file: File) => {
+    setImageFile(file);
+    // Create a URL for the image file
+    const url = URL.createObjectURL(file);
+    setNewSong(prev => ({
+      ...prev,
+      imageUrl: url
+    }));
+  };
   
   const handleAddSong = () => {
     if (!newSong.title || !newSong.artist || !newSong.audioUrl || !newSong.imageUrl) {
@@ -83,6 +107,8 @@ const Admin = () => {
       imageUrl: "",
       duration: 0
     });
+    setAudioFile(null);
+    setImageFile(null);
     
     setIsAdding(false);
   };
@@ -227,33 +253,87 @@ const Admin = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="audioUrl" className="text-xs text-spotify-text">
-                    Audio URL
-                  </label>
-                  <input
-                    id="audioUrl"
-                    name="audioUrl"
-                    type="text"
-                    value={newSong.audioUrl || ""}
-                    onChange={handleInputChange}
-                    className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
-                    placeholder="Enter audio URL"
-                  />
+                  <label className="text-xs text-spotify-text">Audio Source</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {audioFile ? (
+                      <div className="bg-spotify-dark rounded p-2 text-sm text-spotify-white flex justify-between items-center">
+                        <span className="truncate">{audioFile.name}</span>
+                        <button 
+                          onClick={() => {
+                            setAudioFile(null);
+                            setNewSong(prev => ({ ...prev, audioUrl: "" }));
+                          }}
+                          className="text-spotify-text hover:text-red-500 ml-2"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <FileUploader 
+                          onFileUpload={handleAudioUpload} 
+                          className="h-24" 
+                        />
+                        <div className="flex items-center">
+                          <span className="text-xs text-spotify-text mx-auto">- OR -</span>
+                        </div>
+                        <div>
+                          <input
+                            name="audioUrl"
+                            type="text"
+                            value={newSong.audioUrl || ""}
+                            onChange={handleInputChange}
+                            className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
+                            placeholder="Enter audio URL"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="imageUrl" className="text-xs text-spotify-text">
-                    Image URL
-                  </label>
-                  <input
-                    id="imageUrl"
-                    name="imageUrl"
-                    type="text"
-                    value={newSong.imageUrl || ""}
-                    onChange={handleInputChange}
-                    className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
-                    placeholder="Enter image URL"
-                  />
+                  <label className="text-xs text-spotify-text">Image Source</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {imageFile ? (
+                      <div className="relative h-24 bg-spotify-dark rounded overflow-hidden">
+                        <img 
+                          src={newSong.imageUrl} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button 
+                          onClick={() => {
+                            setImageFile(null);
+                            setNewSong(prev => ({ ...prev, imageUrl: "" }));
+                          }}
+                          className="absolute top-1 right-1 bg-black/70 rounded-full p-1 text-spotify-text hover:text-red-500"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageUploader 
+                          onImageUpload={handleImageUpload} 
+                          className="h-24" 
+                        />
+                        <div className="flex items-center">
+                          <span className="text-xs text-spotify-text mx-auto">- OR -</span>
+                        </div>
+                        <div>
+                          <input
+                            name="imageUrl"
+                            type="text"
+                            value={newSong.imageUrl || ""}
+                            onChange={handleInputChange}
+                            className="w-full bg-spotify-dark text-spotify-white rounded p-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
+                            placeholder="Enter image URL"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -281,7 +361,19 @@ const Admin = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => setIsAdding(false)}
+                  onClick={() => {
+                    setIsAdding(false);
+                    setAudioFile(null);
+                    setImageFile(null);
+                    setNewSong({
+                      id: "",
+                      title: "",
+                      artist: "",
+                      audioUrl: "",
+                      imageUrl: "",
+                      duration: 0
+                    });
+                  }}
                   className="text-spotify-text hover:text-spotify-white"
                 >
                   Cancel
